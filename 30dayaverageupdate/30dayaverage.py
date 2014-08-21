@@ -11,7 +11,10 @@ import datetime
 import os
 
 # Define Constants
-# MAGICNUMBER is the amount of samples that the queue should contain
+# VALUEAFTER is the amount of samples you want to wait before writing the row
+# MN is the amount of samples that the queue should contain
+# MAGICNUMBER is the amount of samples that the queue should use
+# MAGICMINI is the amount of samples required before averaging will occur
 # OUTPUTFILE is the name of the final output file
 # METAFILENAME is the name of the processing file
 # FREQUENCY (in seconds) is the time difference in the timestamps in the 
@@ -19,7 +22,8 @@ import os
 # DATAINDEX is the column for the data values from the input file
 # INPUTFILENAME is the default input file that the script will search for
 VALUEAFTER = 1
-MAGICNUMBER = 5 + VALUEAFTER
+MN = 5
+MAGICNUMBER = MN + VALUEAFTER
 MAGICMINI = 2
 OUTPUTFILENAME = "30dayaverage.csv"
 METAFILENAME = "meta_file.csv"
@@ -64,12 +68,17 @@ class AverageQueue(Queue):
     def __init__(self):
         # Initialize the Queue class
         Queue.__init__(self)
-
+    
     def __return_valueafter(self):
-        temp_items = []
+        # Create a storage list
+        valueafter_items = []
+        
+        # Store the valueafter items of the queue
+        # The valueafter items are the last items in the queue that will not be 
+        # used for averaging
         for dummy_valueafter in range(VALUEAFTER):
-            temp_items.append(self._items.pop(-1))
-        return temp_items
+            valueafter_items.append(self._items.pop(-1))
+        return valueafter_items
         
     def return_average(self):
         # Take the average of all the elements in the Queue
@@ -94,7 +103,8 @@ class AverageQueue(Queue):
             self._items.append(item)
             
         # Take the numerator / denominator to get the average
-        # If the denominator is 0, then return 0
+        # Only return the average if there are more samples than the MAGICMINI
+        # If the denominator is 0, then return None
         if denominator == 0:
             return None
         else:
