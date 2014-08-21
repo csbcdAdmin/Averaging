@@ -1,0 +1,61 @@
+import csv
+import sys
+import datetime
+import os
+
+input_file_name = sys.argv[1]
+
+input_file = open(input_file_name, "r")
+input_reader = csv.reader(input_file, delimiter = ",")
+
+output_file = open("meta_file.csv", "wb")
+output_writer = csv.writer(output_file, delimiter = ",")
+
+output_row = ["timestamp", "value"]
+output_writer.writerow(output_row)
+
+input_row = []
+input_row = input_reader.next()
+
+header = True
+while header == True:
+    try:
+        timestamp = datetime.datetime.strptime(input_row[0],\
+            "%m/%d/%Y %H:%M:%S")
+        input_row = input_reader.next()
+        header = True
+    except:
+        header = False
+	input_row = input_reader.next()
+        
+prev_timestamp = datetime.datetime.strptime(input_row[0],\
+    "%m/%d/%Y %H:%M:%S")
+output_row = [str(prev_timestamp), input_row[1]] 
+output_writer.writerow(output_row)
+input_reader.next()
+
+frequency = 3600
+
+del input_row
+# Add the Null values if the hour is missing or the value is empty
+for input_row in input_reader:
+    output_row = []
+    current_timestamp = datetime.datetime.strptime(input_row[0],\
+        "%m/%d/%Y %H:%M:%S")
+    time_difference = current_timestamp - prev_timestamp
+    assert time_difference.total_seconds() != 0, "There should be no repeating timestamps"
+    if time_difference.total_seconds() != 0:
+        if time_difference.total_seconds() == frequency:
+            output_row = [str(current_timestamp), input_row[1]]
+            output_writer.writerow(output_row)
+        elif time_difference.total_seconds() > frequency:
+            for second in range(1, int(time_difference.total_seconds())):
+                if second % frequency == 0: 
+                    output_row = [str(prev_timestamp +\
+                        datetime.timedelta(seconds = second)), ""]
+                    output_writer.writerow(output_row)
+        prev_timestamp = current_timestamp
+        output_row = [str(prev_timestamp), input_row[1]]
+        output_writer.writerow(output_row)
+    else:
+        prev_timestamp = current_timestamp
